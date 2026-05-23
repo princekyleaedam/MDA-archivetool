@@ -28,8 +28,9 @@ import re
 import subprocess
 import threading
 from datetime import datetime
-import glob
 
+import glob
+import argparse
 import pandas as pd
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -51,7 +52,12 @@ files = glob.glob(f"*{"data_archive_painting"}*")
 if files:
     # Get newest file
     INPUT_FILE = max(files, key=os.path.getmtime)
-    OUTPUT_FILE   = "timelapse_painting" os.path.getctime + ".mp4"
+    
+    timestamp = os.path.getctime(INPUT_FILE)
+    dt_object = datetime.fromtimestamp(timestamp)
+    formatted_time = dt_object.strftime("%B %d, %Y, %H_%M_%S %p")
+    
+    OUTPUT_FILE   = "timelapse_painting " + formatted_time + ".mp4"
 
 CANVAS_SIZE   = 1000
 VIDEO_W       = 1800
