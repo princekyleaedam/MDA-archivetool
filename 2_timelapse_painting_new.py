@@ -57,7 +57,7 @@ if files:
     dt_object = datetime.fromtimestamp(timestamp)
     formatted_time = dt_object.strftime("%B %d, %Y, %H_%M_%S %p")
     
-    OUTPUT_FILE   = "timelapse_painting " + formatted_time + ".mp4"
+    OUTPUT_FILE   = "timelapse_painting " + formatted_time + " stats.mp4"
 
 CANVAS_SIZE   = 1000
 VIDEO_W       = 1800
