@@ -6,7 +6,7 @@ First, run scrape_painting.py. It should output a csv file.
 Next, run either timelapse tool.
 It should automatically find the latest file and make a timelapse.
 
-Arguments:
+Arguments (only applicable to clean version for now):
 
 ```
 usage: 2_timelapse_painting_clean.py [-h] [-fps FPS] [-speed SPEED] [-x0 X0] [-y0 Y0] [-x1 X1] [-y1 Y1] [-scale SCALE]
@@ -21,7 +21,7 @@ options:
   -x1 X1        Region right edge (exclusive)
   -y1 Y1        Region bottom edge (exclusive)
   -scale SCALE  Scale factor for output (e.g. 10 = 10x bigger)
-  -lossless     Makes it lossless and clean (just type -lossless
+  -lossless     Makes it lossless and clean (just type -lossless)
 ```
 
 For any questions or pull requests, just inform me hehe
