@@ -52,10 +52,6 @@ if files:
     INPUT_FILE = max(files, key=os.path.getmtime)
     OUTPUT_FILE   = "timelapse_painting" + str(os.path.getctime(INPUT_FILE)) + ".mp4"
 
-
-formatted_time = now.strftime("%B %d, %Y, %H_%M_%S %p")
-formatted_time += " UTC+08"
-OUTPUT_FILE = "timelapse_painting_clean " + formatted_time + ".mp4"
 CANVAS_SIZE   = 1000
 BG_COLOR      = (30, 30, 30)
 FFMPEG_CRF    = 18
