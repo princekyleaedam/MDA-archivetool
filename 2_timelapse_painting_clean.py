@@ -25,17 +25,38 @@ import re
 import subprocess
 import threading
 
+import argparse
+import glob
+
 import pandas as pd
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
+# ── Arguments and modifications ────────────────────────────────────────────────────────────────
+parser = argparse.ArgumentParser()
+
+parser.add_argument("-fps", default="60", help="The fps of your video", type=int)
+parser.add_argument("-speed", default="1", help="The speed of the timelapse in hours per second", type=int)
+args = parser.parse_args()
+parser.print_help()
+VIDEO_FPS = args.fps
+HOURS_PER_SEC = args.speed
+
+
 # ── Configuration ──────────────────────────────────────────────────────────────
-INPUT_FILE    = "data_archive_painting.csv"
-OUTPUT_FILE   = "timelapse_painting_clean.mp4"
+files = glob.glob(f"*{"data_archive_painting"}*")
+
+if files:
+    # Get newest file
+    INPUT_FILE = max(files, key=os.path.getmtime)
+    OUTPUT_FILE   = "timelapse_painting" + str(os.path.getctime(INPUT_FILE)) + ".mp4"
+
+
+formatted_time = now.strftime("%B %d, %Y, %H_%M_%S %p")
+formatted_time += " UTC+08"
+OUTPUT_FILE = "timelapse_painting_clean " + formatted_time + ".mp4"
 CANVAS_SIZE   = 1000
-VIDEO_FPS     = 60
-HOURS_PER_SEC = 1.0
 BG_COLOR      = (30, 30, 30)
 FFMPEG_CRF    = 18
 FFMPEG_PRESET = "fast"
@@ -47,11 +68,11 @@ def hex_to_rgb(hex_color: str) -> tuple:
     if len(h) == 3:
         h = "".join(c * 2 for c in h)
     if len(h) != 6:
-        return (128, 128, 128)
+        return (160, 160, 160)
     try:
         return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
     except ValueError:
-        return (128, 128, 128)
+        return (160, 160, 160)
 
 
 def load_and_sort(csv_path: str) -> pd.DataFrame:

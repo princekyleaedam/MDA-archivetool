@@ -28,21 +28,35 @@ import re
 import subprocess
 import threading
 from datetime import datetime
+import glob
 
 import pandas as pd
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from tqdm import tqdm
 
+# ── Arguments and modifications ────────────────────────────────────────────────────────────────
+parser = argparse.ArgumentParser()
+
+parser.add_argument("-fps", default="60", help="The fps of your video", type=int)
+parser.add_argument("-speed", default="1", help="The speed of the timelapse in hours per second", type=int)
+args = parser.parse_args()
+parser.print_help()
+VIDEO_FPS = args.fps
+HOURS_PER_SEC = args.speed
+
 # ── Configuration ──────────────────────────────────────────────────────────────
-INPUT_FILE    = "data_archive_painting.csv"
-OUTPUT_FILE   = "timelapse_painting.mp4"
+files = glob.glob(f"*{"data_archive_painting"}*")
+
+if files:
+    # Get newest file
+    INPUT_FILE = max(files, key=os.path.getmtime)
+    OUTPUT_FILE   = "timelapse_painting" os.path.getctime + ".mp4"
+
 CANVAS_SIZE   = 1000
 VIDEO_W       = 1800
 VIDEO_H       = 1000
 FONT_SIZE     = 28
-VIDEO_FPS     = 60
-HOURS_PER_SEC = 1.0
 BG_COLOR      = (30, 30, 30)
 PANEL_COLOR   = (18, 18, 18)
 FFMPEG_CRF    = 18
