@@ -288,8 +288,8 @@ def render_timelapse(df: pd.DataFrame, output_path: str):
 
 
 def main():
-    csv_path = sys.argv[1] if len(sys.argv) > 1 else INPUT_FILE
-    out_path = sys.argv[2] if len(sys.argv) > 2 else OUTPUT_FILE
+    csv_path = INPUT_FILE
+    out_path = OUTPUT_FILE
 
     if not os.path.exists(csv_path):
         print(f"Error: input file not found: {csv_path}")
