@@ -49,7 +49,7 @@ args = parser.parse_args()
 parser.print_help()
 VIDEO_FPS = args.fps
 HOURS_PER_SEC = args.speed
-
+SCALE = args.scale
 region_w = args.x1 - args.x0
 region_h = args.y1 - args.y0
 
@@ -253,8 +253,14 @@ def render_timelapse(df: pd.DataFrame, output_path: str,
         print("\nFFmpeg output:\n" + "\n".join(l.decode(errors="replace")
                                                for l in lines[-30:]))
         raise RuntimeError("FFmpeg failed — see output above.")
- 
+    
+    if(args.lossless == True):
+        file_format = ".mkv"
+    else:
+        file_format = ".mp4"
     print(f"\nTimelapse saved -> {output_path}")
+    print(f"\nTo compress or scale, run this:")
+    print("\nffmpeg -i \"" + output_path + file_format + "\" -vf \"scale=" + str(enc_w*SCALE) + ":" + str(enc_h*SCALE) + ":flags=neighbor\" \"" + output_path + "_final" + file_format +"\"")
 
 
 def main():
