@@ -24,6 +24,7 @@ import os
 import re
 import subprocess
 import threading
+import datetime
 
 import argparse
 import glob
@@ -38,11 +39,19 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument("-fps", default="60", help="The fps of your video", type=int)
 parser.add_argument("-speed", default="1", help="The speed of the timelapse in hours per second", type=int)
+parser.add_argument("-x0", type=int, default=0,            help="Region left edge (inclusive)")
+parser.add_argument("-y0", type=int, default=0,            help="Region top edge (inclusive)")
+parser.add_argument("-x1", type=int, default=1000,  help="Region right edge (exclusive)")
+parser.add_argument("-y1", type=int, default=1000,  help="Region bottom edge (exclusive)")
+parser.add_argument("-scale", type=int, default=1, help="Scale factor for output (e.g. 10 = 10x bigger)")
+parser.add_argument("-lossless", action="store_true", help="Makes it lossless and clean (just type -lossless")
 args = parser.parse_args()
 parser.print_help()
 VIDEO_FPS = args.fps
 HOURS_PER_SEC = args.speed
 
+region_w = args.x1 - args.x0
+region_h = args.y1 - args.y0
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 files = glob.glob(f"*{"data_archive_painting"}*")
@@ -52,15 +61,14 @@ if files:
     INPUT_FILE = max(files, key=os.path.getmtime)
     
     timestamp = os.path.getctime(INPUT_FILE)
-    dt_object = datetime.fromtimestamp(timestamp)
-    formatted_time = now.strftime("%B %d, %Y, %H_%M_%S %p")
+    dt_object = datetime.datetime.fromtimestamp(timestamp)
+    formatted_time = dt_object.strftime("%B %d, %Y, %H_%M_%S %p")
     
-    OUTPUT_FILE   = "timelapse_painting " + formatted_time + " clean.mp4"
+    OUTPUT_FILE   = "timelapse_painting " + formatted_time + " " + str(args.x0) +"," + str(args.y0) + " to  " + str(args.x1) + "," + str(args.y1) +" clean"
 
-CANVAS_SIZE   = 1000
 BG_COLOR      = (30, 30, 30)
-FFMPEG_CRF    = 18
-FFMPEG_PRESET = "fast"
+FFMPEG_CRF    = 0
+FFMPEG_PRESET = "veryslow"
 # ───────────────────────────────────────────────────────────────────────────────
 
 
@@ -102,30 +110,49 @@ def load_and_sort(csv_path: str) -> pd.DataFrame:
     return df
 
 
-def start_ffmpeg(output_path: str) -> subprocess.Popen:
-    cmd = [
-        "ffmpeg", "-y",
-        "-f", "rawvideo",
-        "-pix_fmt", "rgb24",
-        "-s", f"{CANVAS_SIZE}x{CANVAS_SIZE}",
-        "-r", str(VIDEO_FPS),
-        "-i", "pipe:0",
-        "-c:v", "libx264",
-        "-crf", str(FFMPEG_CRF),
-        "-preset", FFMPEG_PRESET,
-        "-pix_fmt", "yuv420p",
-        "-progress", "pipe:2",
-        "-nostats",
-        output_path,
-    ]
+def start_ffmpeg(output_path: str, width: int, height: int) -> subprocess.Popen:
+    
+    if(args.lossless == True):
+        cmd = [
+            "ffmpeg", "-y",
+            "-f", "rawvideo",
+            "-pix_fmt", "rgb24",
+            "-s", f"{width}x{height}",
+            "-r", str(VIDEO_FPS),
+            "-i", "pipe:0",
+            "-c:v", "ffv1",
+            # "-crf", str(FFMPEG_CRF),
+            # "-preset", FFMPEG_PRESET,
+            # "-pix_fmt", "yuv420p",
+            "-progress", "pipe:2",
+            "-nostats",
+            output_path + ".mkv",
+        ]
+    else:
+        cmd = [
+            "ffmpeg", "-y",
+            "-f", "rawvideo",
+            "-pix_fmt", "rgb24",
+            "-s", f"{width}x{height}",
+            "-r", str(VIDEO_FPS),
+            "-i", "pipe:0",
+            "-c:v", "libx264",
+            "-crf", str(FFMPEG_CRF),
+            "-preset", FFMPEG_PRESET,
+            "-pix_fmt", "yuv420p",
+            "-progress", "pipe:2",
+            "-nostats",
+            output_path + ".mp4",
+        ]
+        
     return subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
         stderr=subprocess.PIPE,
         stdout=subprocess.DEVNULL,
     )
-
-
+ 
+ 
 def monitor_ffmpeg_progress(proc: subprocess.Popen, n_frames: int,
                              pbar: tqdm, done_event: threading.Event):
     frame_re = re.compile(rb"^frame=(\d+)")
@@ -144,35 +171,39 @@ def monitor_ffmpeg_progress(proc: subprocess.Popen, n_frames: int,
             break
     done_event.set()
     proc._stderr_lines = stderr_lines
-
-
-def render_timelapse(df: pd.DataFrame, output_path: str):
+ 
+ 
+def render_timelapse(df: pd.DataFrame, output_path: str,
+                     region_w: int, region_h: int) -> None:
     t_min           = df["ts"].iloc[0]
     t_max           = df["ts"].iloc[-1]
     total_hours     = (t_max - t_min).total_seconds() / 3600.0
     hours_per_frame = HOURS_PER_SEC / VIDEO_FPS
     n_frames        = max(1, int(total_hours / hours_per_frame) + 1)
-
+ 
     print(f"\nTimelapse parameters:")
     print(f"  Real-time span : {total_hours:.1f} hours")
     print(f"  Speed          : {HOURS_PER_SEC} hour(s) per video-second")
     print(f"  Frame rate     : {VIDEO_FPS} fps")
     print(f"  Total frames   : {n_frames:,}  (~{n_frames / VIDEO_FPS:.0f}s video)")
-    print(f"  Output size    : {CANVAS_SIZE} x {CANVAS_SIZE}")
+    print(f"  Output size    : {region_w} x {region_h}")
     print(f"  Disk usage     : none (piping directly to FFmpeg)\n")
-
-    canvas = np.full((CANVAS_SIZE, CANVAS_SIZE, 3), BG_COLOR, dtype=np.uint8)
-
+ 
+    # yuv420p requires even dimensions — pad by 1px if needed
+    enc_w = region_w + (region_w % 2)
+    enc_h = region_h + (region_h % 2)
+    canvas = np.full((enc_h, enc_w, 3), BG_COLOR, dtype=np.uint8)
+ 
     df["frame_idx"] = (
         (df["ts"] - t_min).dt.total_seconds() / 3600.0 / hours_per_frame
     ).astype(int).clip(upper=n_frames - 1)
-
+ 
     pixel_groups = df.groupby("frame_idx")
-
+ 
     # ── Launch FFmpeg & progress monitor ─────────────────────────────────────
-    proc       = start_ffmpeg(output_path)
+    proc       = start_ffmpeg(output_path, enc_w, enc_h)
     done_event = threading.Event()
-
+ 
     encode_pbar = tqdm(total=n_frames, unit="frame", ncols=80,
                        desc="  Encoding", position=1, leave=True)
     monitor_thread = threading.Thread(
@@ -181,30 +212,30 @@ def render_timelapse(df: pd.DataFrame, output_path: str):
         daemon=True,
     )
     monitor_thread.start()
-
+ 
     # ── Render & pipe frames ──────────────────────────────────────────────────
     frame_iter      = iter(pixel_groups)
     next_idx, next_grp = next(frame_iter, (None, None))
-
+ 
     try:
         with tqdm(total=n_frames, unit="frame", ncols=80,
                   desc="  Rendering", position=0, leave=True) as render_pbar:
-
+ 
             for fi in range(n_frames):
                 while next_idx is not None and next_idx <= fi:
                     for _, row in next_grp.iterrows():
                         x, y = int(row["x"]), int(row["y"])
-                        if 0 <= x < CANVAS_SIZE and 0 <= y < CANVAS_SIZE:
+                        if 0 <= x < region_w and 0 <= y < region_h:
                             canvas[y, x] = hex_to_rgb(
                                 str(row["current_content_color_hex"]))
                     next_idx, next_grp = next(frame_iter, (None, None))
-
+ 
                 # Write raw RGB bytes — no PIL image needed, numpy tobytes directly
                 proc.stdin.write(canvas.tobytes())
                 render_pbar.update(1)
-
+ 
         proc.stdin.close()
-
+ 
     except BrokenPipeError:
         proc.stdin.close()
         proc.wait()
@@ -212,17 +243,17 @@ def render_timelapse(df: pd.DataFrame, output_path: str):
         print("\nFFmpeg output:\n" + "\n".join(l.decode(errors="replace")
                                                for l in lines[-30:]))
         raise RuntimeError("FFmpeg stdin pipe broke — see output above.")
-
+ 
     done_event.wait()
     encode_pbar.close()
     proc.wait()
-
+ 
     if proc.returncode != 0:
         lines = getattr(proc, "_stderr_lines", [])
         print("\nFFmpeg output:\n" + "\n".join(l.decode(errors="replace")
                                                for l in lines[-30:]))
         raise RuntimeError("FFmpeg failed — see output above.")
-
+ 
     print(f"\nTimelapse saved -> {output_path}")
 
 
@@ -238,8 +269,12 @@ def main():
     if df.empty:
         print("No valid pixel data found — nothing to render.")
         sys.exit(0)
-
-    render_timelapse(df, out_path)
+    
+    df = df[(df["x"] >= args.x0) & (df["x"] < args.x1) & (df["y"] >= args.y0) & (df["y"] < args.y1)].copy()
+    df["x"] = df["x"] - args.x0
+    df["y"] = df["y"] - args.y0
+    
+    render_timelapse(df, out_path, region_w, region_h)
 
 
 if __name__ == "__main__":
