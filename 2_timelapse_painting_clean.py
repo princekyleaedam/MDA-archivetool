@@ -50,7 +50,12 @@ files = glob.glob(f"*{"data_archive_painting"}*")
 if files:
     # Get newest file
     INPUT_FILE = max(files, key=os.path.getmtime)
-    OUTPUT_FILE   = "timelapse_painting" + str(os.path.getctime(INPUT_FILE)) + ".mp4"
+    
+    timestamp = os.path.getctime(INPUT_FILE)
+    dt_object = datetime.fromtimestamp(timestamp)
+    formatted_time = now.strftime("%B %d, %Y, %H_%M_%S %p")
+    
+    OUTPUT_FILE   = "timelapse_painting " + formatted_time + ".mp4"
 
 CANVAS_SIZE   = 1000
 BG_COLOR      = (30, 30, 30)
