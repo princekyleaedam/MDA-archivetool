@@ -2,6 +2,9 @@
 An data scraper and timelapse tool for seb.draws.things project themilliondollardrawing.com.
 
 Options:
+For getting the raw picture, run milliondollarartwork.py
+
+For getting data:
 First, run scrape_painting.py. It should output a csv file.
 Next, run either timelapse tool.
 It should automatically find the latest file and make a timelapse.
