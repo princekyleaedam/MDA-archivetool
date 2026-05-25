@@ -37,14 +37,15 @@ from tqdm import tqdm
 # ── Arguments and modifications ────────────────────────────────────────────────────────────────
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-fps", default="60", help="The fps of your video", type=int)
-parser.add_argument("-speed", default="1", help="The speed of the timelapse in hours per second", type=int)
+parser.add_argument("-fps", default="60", help="The fps of your video (default is 60)", type=int)
+parser.add_argument("-speed", default="1", help="The speed of the timelapse in hours per second (default is 1)", type=int)
 parser.add_argument("-x0", type=int, default=0,            help="Region left edge (inclusive)")
 parser.add_argument("-y0", type=int, default=0,            help="Region top edge (inclusive)")
 parser.add_argument("-x1", type=int, default=1000,  help="Region right edge (exclusive)")
 parser.add_argument("-y1", type=int, default=1000,  help="Region bottom edge (exclusive)")
 parser.add_argument("-scale", type=int, default=1, help="Scale factor for output (e.g. 10 = 10x bigger)")
 parser.add_argument("-lossless", action="store_true", help="Makes it lossless and clean (just type -lossless")
+parser.add_argument("-bgcolor", default="#1E1E1E", type=str, help="Hex Color Of background. (default: #1E1E1E)")
 args = parser.parse_args()
 parser.print_help()
 VIDEO_FPS = args.fps
@@ -52,6 +53,21 @@ HOURS_PER_SEC = args.speed
 SCALE = args.scale
 region_w = args.x1 - args.x0
 region_h = args.y1 - args.y0
+
+#Color process:
+hex_color = args.bgcolor
+
+hex_color = hex_color.lstrip("#")
+
+if len(hex_color) != 6:
+    print("Invalid hex color.")
+else:
+    try:
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+    except ValueError:
+        print("Invalid hex color.")
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 files = glob.glob(f"*{"data_archive_painting"}*")
@@ -66,7 +82,9 @@ if files:
     
     OUTPUT_FILE   = "timelapse_painting " + formatted_time + " " + str(args.x0) +"," + str(args.y0) + " to  " + str(args.x1) + "," + str(args.y1) +" clean"
 
-BG_COLOR      = (30, 30, 30)
+
+
+BG_COLOR      = (r, g, b)
 FFMPEG_CRF    = 0
 FFMPEG_PRESET = "veryslow"
 # ───────────────────────────────────────────────────────────────────────────────
