@@ -1,6 +1,14 @@
 # MDA-archivetool
 An data scraper and timelapse tool for seb.draws.things project themilliondollardrawing.com.
 
+Prerequisites: python, ffmpeg.exe
+
+Before running, make sure that these pip modules are installed.
+``` python -m pip install tqdm numpy pandas pillow requests ```
+Hopefully I haven't missed any.
+
+Also, make sure you have a copy of ffmpeg.exe in the same folder as the scripts.
+
 Options:
 For getting the raw picture, run milliondollarartwork.py
 
