@@ -36,4 +36,9 @@ options:
   -bgcolor BGCOLOR  Hex Color Of background. (default: #1E1E1E)
 ```
 
+Updates:
+1.0.2 - Reworked data scraping because of API change due to security.
+1.0.1 - Added lossless versions and scaling
+1.0.0 - The original.
+
 For any questions or pull requests, just inform me hehe
