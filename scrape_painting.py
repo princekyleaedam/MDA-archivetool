@@ -23,7 +23,11 @@ from datetime import datetime
 # ── Configuration ──────────────────────────────────────────────────────────────
 BIN_URL              = "https://d34w1vc7uzb89c.cloudfront.net/canvas/snapshot/latest.bin.gz"
 BASE_URL             = "https://api.themilliondollardrawing.com/pixels/{x}/{y}"
-OUTPUT_FILE          = "data_archive_painting.csv"
+now = datetime.now()
+
+formatted_time = now.strftime("%B %d, %Y, %H_%M_%S %p")
+formatted_time += " UTC+08"
+OUTPUT_FILE = "data_archive_painting " + formatted_time + ".csv"
 MAX_WORKERS          = 1000      # concurrent API requests
 TIMEOUT_SEC          = 10      # per-request timeout (seconds)
 RETRY_COUNT          = 0       # retries on transient network error per attempt
@@ -59,7 +63,7 @@ PALETTE: dict[int, tuple[int, int, int]] = {
 
 PRIMARY_COLS = [
     "x", "y", "color_hex",
-    "owner_id", "owner_name", "legacy_message", "rank", "made_at",
+    "owner_id", "owner_name", "legacy_message", "rank", "madeAt",
 ]
 
 
@@ -124,7 +128,7 @@ async def fetch_pixel(
                     "owner_name":    data.get("ownerName"),
                     "legacy_message":data.get("legacyMessage"),
                     "rank":          data.get("rank"),
-                    "made_at":       data.get("madeAt"),
+                    "madeAt":       data.get("madeAt"),
                 }
         except (aiohttp.ClientError, asyncio.TimeoutError, Exception):
             if attempt < RETRY_COUNT:
