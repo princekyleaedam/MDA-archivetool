@@ -29,8 +29,8 @@ formatted_time = now.strftime("%B %d, %Y, %H_%M_%S %p")
 formatted_time += " UTC+08"
 OUTPUT_FILE = "data_archive_painting " + formatted_time + ".csv"
 MAX_WORKERS          = 1000      # concurrent API requests
-TIMEOUT_SEC          = 10      # per-request timeout (seconds)
-RETRY_COUNT          = 0       # retries on transient network error per attempt
+TIMEOUT_SEC          = 5      # per-request timeout (seconds)
+RETRY_COUNT          = 1       # retries on transient network error per attempt
 ISNOT_COMPLETE       = True    #makes sure that it gets elbiting
 
 # ───────────────────────────────────────────────────────────────────────────────
@@ -235,31 +235,33 @@ async def main():
         # 3. Reconciliation loop
         while ISNOT_COMPLETE:
             pass_num += 1
-            saved_coords  = load_saved_coords(OUTPUT_FILE)
-            missing       = len(requested) - len(saved_coords)
-            saved_count   = len(saved_coords)
- 
+            saved_coords = load_saved_coords(OUTPUT_FILE)
+            missing      = set(requested.keys()) - saved_coords
+            saved_count  = len(saved_coords)
+
             print(f"\n── Reconciliation check (pass {pass_num}) ──────────────────")
             print(f"  Requested : {len(requested):,}")
             print(f"  Saved     : {saved_count:,}")
-            print(f"  Missing   : {missing:,}")
- 
+            print(f"  Missing   : {len(missing):,}")
+
             if not missing:
                 print("  ✓ Counts match — no missing rows.")
                 break
- 
+
             print(f"  Retrying {len(missing):,} missing coords ...")
-            retry_coords        = sorted(missing)   # deterministic order
-            recovered_rows, _   = await fetch_batch(
-                session, retry_coords,
-                label=f"Reconciliation pass {pass_num}"
+            retry_coords = sorted(
+                [(x, y, requested[(x, y)]) for x, y in missing]
             )
- 
+            recovered_rows, _ = await fetch_batch(
+                session, retry_coords,
+                label=f"Reconciliation pass {pass_num}",
+            )
+
             if not recovered_rows:
                 print(f"  No new rows recovered in pass {pass_num}. "
                       "Remaining coords likely have no content on the API.")
                 break
- 
+
             append_rows(OUTPUT_FILE, recovered_rows)
             print(f"  Appended {len(recovered_rows):,} recovered rows.")
 
