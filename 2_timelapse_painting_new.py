@@ -29,8 +29,9 @@ import subprocess
 import threading
 from datetime import datetime
 
-import glob
 import argparse
+import glob
+
 import pandas as pd
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -103,16 +104,16 @@ def load_and_sort(csv_path: str) -> pd.DataFrame:
     print(f"Loading {csv_path} ...")
     df = pd.read_csv(csv_path, low_memory=False)
 
-    required = {"x", "y", "current_content_color_hex", "current_content_created_at"}
+    required = {"x", "y", "color_hex", "madeAt"}
     missing  = required - set(df.columns)
     if missing:
         raise ValueError(f"CSV is missing required columns: {missing}")
 
-    df = df.dropna(subset=["x", "y", "current_content_color_hex",
-                            "current_content_created_at"])
+    df = df.dropna(subset=["x", "y", "color_hex",
+                            "madeAt"])
     df["x"] = df["x"].astype(int)
     df["y"] = df["y"].astype(int)
-    df["ts"] = pd.to_datetime(df["current_content_created_at"], utc=True, errors="coerce")
+    df["ts"] = pd.to_datetime(df["madeAt"], utc=True, errors="coerce")
 
     bad = df["ts"].isna().sum()
     if bad:
@@ -237,7 +238,7 @@ def render_timelapse(df: pd.DataFrame, output_path: str):
                         x, y = int(row["x"]), int(row["y"])
                         if 0 <= x < CANVAS_SIZE and 0 <= y < CANVAS_SIZE:
                             canvas[y, x] = hex_to_rgb(
-                                str(row["current_content_color_hex"]))
+                                str(row["color_hex"]))
                             pixels_so_far += 1
                     next_idx, next_grp = next(frame_iter, (None, None))
 
