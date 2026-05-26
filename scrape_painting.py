@@ -28,7 +28,7 @@ MAX_WORKERS          = 1000      # concurrent API requests
 TIMEOUT_SEC          = 10      # per-request timeout (seconds)
 RETRY_COUNT          = 0       # retries on transient network error per attempt
 ISNOT_COMPLETE       = True    #makes sure that it gets elbiting
-MAX_RECONCILE_PASSES = 3       # reconciliation passes before giving up
+
 # ───────────────────────────────────────────────────────────────────────────────
 
 # Colour palette: byte value -> (R, G, B)
@@ -168,7 +168,7 @@ async def fetch_batch(
                 failed.add((x, y))
 
         done += len(batch)
-        if done % 5_000 == 0 or done == total:
+        if done % MAX_WORKERS == 0 or done == total:
             pct = done / total * 100
             print(f"  [{datetime.now():%H:%M:%S}] "
                   f"{done:>7,}/{total:,} ({pct:5.1f}%)  saved so far={len(rows):,}")
@@ -226,17 +226,19 @@ async def main():
             writer = csv.DictWriter(f, fieldnames=PRIMARY_COLS, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(rows)
-
+        
+        pass_num=0
         # 3. Reconciliation loop
         while ISNOT_COMPLETE:
+            pass_num += 1
             saved_coords  = load_saved_coords(OUTPUT_FILE)
-            missing       = requested - saved_coords
+            missing       = len(requested) - len(saved_coords)
             saved_count   = len(saved_coords)
  
             print(f"\n── Reconciliation check (pass {pass_num}) ──────────────────")
             print(f"  Requested : {len(requested):,}")
             print(f"  Saved     : {saved_count:,}")
-            print(f"  Missing   : {len(missing):,}")
+            print(f"  Missing   : {missing:,}")
  
             if not missing:
                 print("  ✓ Counts match — no missing rows.")
