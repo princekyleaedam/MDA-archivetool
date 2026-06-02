@@ -13,7 +13,7 @@ Options:
 For getting the raw picture, run milliondollarartwork.py
 
 For getting data:
-First, run scrape_painting.py. It should output a csv file.
+First, run scrape_painting.py. It should output a csv file (for archival and data viewing).
 Next, run either timelapse tool.
 It should automatically find the latest file and make a timelapse.
 
